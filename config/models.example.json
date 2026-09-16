@@ -1,0 +1,24 @@
+{
+  "channels": [
+    {
+      "id": "provider",
+      "name": "三岁-provider",
+      "baseUrl": "https://provider.example.com",
+      "apiKeyEnv": "VOZEB_PRO_PROVIDER_API_KEY",
+      "protocol": "openai",
+      "enabled": true,
+      "models": [
+        { "id": "text-model-id", "capability": "text" },
+        { "id": "image-model-id", "capability": "image" },
+        { "id": "video-model-id", "capability": "video" },
+        { "id": "audio-model-id", "capability": "audio" }
+      ]
+    }
+  ],
+  "defaults": {
+    "textModel": "text-model-id",
+    "imageModel": "image-model-id",
+    "videoModel": "video-model-id",
+    "audioModel": "audio-model-id"
+  }
+}

@@ -1,0 +1,52 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+*.tsbuildinfo
+
+# Environment & secrets
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Test artifacts
+.e2e-artifacts/
+.e2e-data/
+coverage/
+playwright-report/
+test-results/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Temp & debugging scripts
+*.ps1
+*.bak
+*.tar.gz
+.tmp-*
+.tmp-user-*
+.tmp-user-file
+.tmp-user-img.png
+.core-spec-corrupted.bak
+.creative-fixed-dist.tar.gz
+.drama-refs.txt
+.drama-removed-backup.tar.gz
+
+# Misc
+.agents/
+*.local

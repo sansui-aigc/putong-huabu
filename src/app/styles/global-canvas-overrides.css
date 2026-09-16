@@ -1,0 +1,230 @@
+﻿::view-transition-old(root),
+::view-transition-new(root) {
+    animation: none;
+    mix-blend-mode: normal;
+}
+
+.canvas-image-toolbar-settings-modal .canvas-toolbar-tool-check {
+    color: #1f2937;
+}
+
+.canvas-image-toolbar-settings-modal .canvas-toolbar-tool-check:hover {
+    color: #0f172a;
+}
+
+.canvas-image-toolbar-settings-modal .canvas-toolbar-tool-check-box {
+    align-items: center;
+    background: #ffffff;
+    border: 1px solid #94a3b8;
+    border-radius: 5px;
+    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.04);
+    color: transparent;
+    display: inline-flex;
+    height: 16px;
+    justify-content: center;
+    width: 16px;
+}
+
+.canvas-image-toolbar-settings-modal .canvas-toolbar-tool-check:hover .canvas-toolbar-tool-check-box {
+    background: #f8fafc;
+    border-color: #0f172a;
+}
+
+.canvas-image-toolbar-settings-modal .canvas-toolbar-tool-check.is-selected .canvas-toolbar-tool-check-box {
+    background: #0f172a;
+    border-color: #0f172a;
+    box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.14);
+    color: #ffffff;
+}
+
+html.dark .canvas-image-toolbar-settings-modal .ant-form-item-label > label,
+html.dark .canvas-image-toolbar-settings-modal .ant-modal-footer,
+html.dark .canvas-image-toolbar-settings-modal .canvas-toolbar-tool-check {
+    color: #f4f4f5;
+}
+
+html.dark .canvas-image-toolbar-settings-modal .canvas-toolbar-tool-check {
+    color: #e4e4e7;
+}
+
+html.dark .canvas-image-toolbar-settings-modal .canvas-toolbar-tool-check:hover {
+    color: #ffffff;
+}
+
+html.dark .canvas-image-toolbar-settings-modal .canvas-toolbar-tool-check-box {
+    align-items: center;
+    background: #0b0f14;
+    border: 1px solid #a1a1aa;
+    border-radius: 5px;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+    color: transparent;
+    display: inline-flex;
+    height: 16px;
+    justify-content: center;
+    width: 16px;
+}
+
+html.dark .canvas-image-toolbar-settings-modal .canvas-toolbar-tool-check:hover .canvas-toolbar-tool-check-box {
+    background: #111827;
+    border-color: #f8fafc;
+}
+
+html.dark .canvas-image-toolbar-settings-modal .canvas-toolbar-tool-check.is-selected .canvas-toolbar-tool-check-box {
+    background: #f8fafc;
+    border-color: #ffffff;
+    box-shadow:
+        0 0 0 2px rgba(248, 250, 252, 0.28),
+        inset 0 0 0 1px rgba(15, 23, 42, 0.08);
+    color: #0f172a;
+}
+
+html.dark .canvas-image-toolbar-settings-modal .ant-switch.ant-switch-checked {
+    background: #f8fafc !important;
+    border-color: #ffffff !important;
+    box-shadow: 0 0 0 2px rgba(248, 250, 252, 0.28) !important;
+}
+
+html.dark .canvas-image-toolbar-settings-modal .ant-switch.ant-switch-checked .ant-switch-handle::before {
+    background: #0f172a !important;
+}
+
+html.dark .canvas-image-toolbar-settings-modal .ant-switch.ant-switch-checked:hover:not(.ant-switch-disabled) {
+    background: #ffffff !important;
+    border-color: #ffffff !important;
+}
+
+html.dark .canvas-agent-confirm-switch.ant-switch {
+    background: #272a33 !important;
+    border: 1px solid #5b6472 !important;
+    min-width: 40px;
+}
+
+html.dark .canvas-agent-confirm-switch.ant-switch:hover:not(.ant-switch-disabled) {
+    background: #323746 !important;
+    border-color: #8b949e !important;
+}
+
+html.dark .canvas-agent-confirm-switch.ant-switch .ant-switch-handle::before {
+    background: #f8fafc !important;
+    box-shadow: 0 2px 7px rgba(0, 0, 0, 0.4);
+}
+
+html.dark .canvas-agent-confirm-switch.ant-switch.ant-switch-checked {
+    background: #f8fafc !important;
+    border-color: #ffffff !important;
+    box-shadow: 0 0 0 2px rgba(248, 250, 252, 0.28) !important;
+}
+
+html.dark .canvas-agent-confirm-switch.ant-switch.ant-switch-checked .ant-switch-handle::before {
+    background: #0f172a !important;
+}
+
+html.dark .canvas-agent-confirm-switch.ant-switch.ant-switch-checked:hover:not(.ant-switch-disabled) {
+    background: #ffffff !important;
+    border-color: #ffffff !important;
+}
+
+.canvas-toolbar-dock-wrap {
+    left: 300px;
+    right: 16px;
+}
+
+.canvas-toolbar-dock .canvas-toolbar-batch-download.ant-btn {
+    min-width: 52px !important;
+    width: auto !important;
+}
+
+@media (min-width: 1024px) {
+    .canvas-toolbar-dock.is-agent-open {
+        gap: 2px;
+        padding-left: 6px;
+        padding-right: 6px;
+    }
+
+    .canvas-toolbar-dock.is-agent-open .ant-btn {
+        height: 28px !important;
+        min-width: 28px !important;
+        width: 28px !important;
+    }
+
+    .canvas-toolbar-dock.is-agent-open .canvas-toolbar-divider {
+        height: 22px;
+        margin-left: 2px;
+        margin-right: 2px;
+    }
+}
+
+.canvas-topbar-left,
+.canvas-topbar-title,
+.canvas-topbar-actions {
+    min-width: 0;
+}
+
+/* ===== 画布库首页 Oakâme 风格（对应 styles.refero.design Oakâme） ===== */
+.canvas-library .ant-btn {
+    border-radius: 999px;
+    box-shadow: none;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+}
+
+.canvas-library .ant-btn-default {
+    border-color: #403a34;
+    color: #403a34;
+    background: transparent;
+}
+
+.canvas-library .ant-btn-default:hover {
+    border-color: #403a34;
+    color: #f6f1eb;
+    background: #403a34;
+}
+
+.canvas-library .ant-btn-primary {
+    border-color: #403a34;
+    color: #f6f1eb;
+    background: #403a34;
+}
+
+.canvas-library .ant-btn-primary:hover {
+    border-color: #333333;
+    color: #f6f1eb;
+    background: #333333;
+}
+
+.canvas-library .ant-btn-sm {
+    padding-inline: 18px;
+    height: 34px;
+    font-size: 13px;
+}
+
+.canvas-library .ant-pagination {
+    color: #555555;
+}
+
+.canvas-library .ant-pagination .ant-pagination-item {
+    border-radius: 999px;
+    border-color: rgba(64, 58, 52, 0.25);
+}
+
+.canvas-library .ant-pagination .ant-pagination-item-active {
+    border-color: #403a34;
+    background: #403a34;
+}
+
+.canvas-library .ant-pagination .ant-pagination-item-active a {
+    color: #f6f1eb;
+}
+/* 画布库首页：外壳与顶栏融入暖色（仅当页面含 canvas-library 时生效） */
+.workspace-shell:has(.canvas-library) {
+    background: #f6f1eb;
+}
+
+.workspace-shell:has(.canvas-library) .workspace-main {
+    background: #f6f1eb;
+}
+
+.workspace-shell:has(.canvas-library) .workspace-topbar {
+    background: #f6f1eb;
+    border-color: rgba(64, 58, 52, 0.15);
+}
