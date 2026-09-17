@@ -171,16 +171,26 @@ cd putong-huabu
 # 2. 安装依赖
 pnpm install --frozen-lockfile
 
-# 3. 配置环境变量（可选，使用 .env.example 模板）
-Copy-Item ..\.env.example .env.local
+# 3. 配置环境变量（复制模板为 .env.local 并填写）
+Copy-Item .env.example .env.local
+# 编辑 .env.local：填入模型渠道 API Key（VOZEB_PRO_PROVIDER_API_KEY=sk-...）
 
-# 4. 启动开发服务器
+# 4. 配置模型渠道（复制示例并按需编辑）
+Copy-Item config\models.example.json config\models.json
+
+# 5. 启动开发服务器
 pnpm run dev
 ```
 
 启动后访问 **http://localhost:3002/canvas**。
 
-> `pnpm run dev` 会同时启动独立 API 与生成 Worker；模型渠道配置见 `config/models.example.json`。
+> `pnpm run dev` 会同时启动独立 API 与生成 Worker。模型渠道从 `config/models.json` 读取，密钥只放在 `.env.local` 环境变量中，不会发送到浏览器。
+
+### 首次使用（网页初始化）
+
+打开 **http://localhost:3002/install** 进入安装向导：
+- **本地文件存储模式**（默认）：无需 PostgreSQL，模型与密钥由服务器配置管理，确认后即可开始创作
+- **数据库模式**：填写 PostgreSQL 连接信息，完成初始化后创建管理员账号
 
 ---
 
@@ -222,10 +232,10 @@ pnpm run dev
 ## ❓ 常见问题
 
 **Q：如何配置 AI 模型渠道？**
-A：复制 `config/models.example.json` 为实际配置，并在 `.env.local` 中填写中转站地址与 API Key；画布右下角「设置」中也可配置。
+A：复制 `config\models.example.json` 为 `config\models.json` 并填写渠道 baseUrl 与模型 ID；API Key 写在 `.env.local`（`VOZEB_PRO_PROVIDER_API_KEY=sk-...`），模型密钥只放服务器环境变量，不会发送到浏览器。
 
 **Q：Agent 提示未配置模型怎么办？**
-A：打开 Agent 面板右上角设置图标，配置可用的文本 / 推理模型渠道。
+A：确认已完成上面的模型渠道与 `.env.local` 配置后重启 `pnpm run dev`；也可通过网页向导 `http://localhost:3002/install` 检查初始化状态。
 
 **Q：是否需要数据库？**
 A：不需要。默认使用本地文件存储；如需对象存储，可配置 AWS S3。
