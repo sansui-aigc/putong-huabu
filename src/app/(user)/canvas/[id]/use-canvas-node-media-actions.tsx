@@ -64,6 +64,7 @@ export function useCanvasNodeMediaActions({ state, tasks, interactions }: { stat
     } = state;
     const { startGenerationRequest, finishGenerationRequest, startAndCompleteImageTask } = tasks;
     const [selectedMediaDownloadPending, setSelectedMediaDownloadPending] = useState(false);
+    const [stitchPending, setStitchPending] = useState(false);
     const selectedMediaNodes = useMemo(() => selectedCanvasMediaNodes(nodes, selectedNodeIds), [nodes, selectedNodeIds]);
 
     const toggleNodeFreeResize = useCallback((nodeId: string) => {
@@ -321,9 +322,41 @@ export function useCanvasNodeMediaActions({ state, tasks, interactions }: { stat
         [appendDerivedImageNode],
     );
 
+    const stitchSelectedImages = useCallback(
+        async (direction: "vertical" | "horizontal") => {
+            const imageNodes = selectedMediaNodes.filter((node) => isCanvasImageNodeType(node.type) && node.metadata?.content);
+            if (imageNodes.length < 2) {
+                message.warning("至少选中 2 张图片才能拼接");
+                return;
+            }
+            setStitchPending(true);
+            try {
+                const response = await fetch("/api/canvas/stitch", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ images: imageNodes.map((node) => node.metadata?.content || ""), direction }),
+                });
+                const payload = (await response.json().catch(() => null)) as { code?: number; msg?: string; data?: { dataUrl: string; width: number; height: number } } | null;
+                if (!payload || payload.code !== 0 || !payload.data?.dataUrl) throw new Error(payload?.msg || "图片拼接失败");
+                const uploaded = await uploadCanvasImage(payload.data.dataUrl);
+                const source = imageNodes[0];
+                const width = Math.min(source.width, Math.max(220, uploaded.width));
+                appendDerivedImageNode(source, uploaded, direction === "vertical" ? "详情页长图" : "并排长图", {
+                    width,
+                    height: Math.round(width * (uploaded.height / uploaded.width)),
+                });
+                message.success(`已将 ${imageNodes.length} 张图片拼接为一张${direction === "vertical" ? "竖长图" : "并排图"}`);
+            } catch (error) {
+                message.error(error instanceof Error ? error.message : "图片拼接失败");
+            } finally {
+                setStitchPending(false);
+            }
+        },
+        [appendDerivedImageNode, selectedMediaNodes, message],
+    );
+
     const splitImageNode = useCallback(
-        async (node: CanvasNodeData, params: CanvasImageSplitParams) => {
-            if (!node.metadata?.content) return;
+        async (node: CanvasNodeData, params: CanvasImageSplitParams) => {            if (!node.metadata?.content) return;
             const pieces = await splitDataUrl(node.metadata.content, params);
             const gap = 16;
             const cellWidth = node.width / params.columns;
@@ -561,6 +594,8 @@ export function useCanvasNodeMediaActions({ state, tasks, interactions }: { stat
         downloadSelectedMedia,
         selectedMediaCount: selectedMediaNodes.length,
         selectedMediaDownloadPending,
+        stitchSelectedImages,
+        stitchPending,
         saveNodeAsset,
         createImageReversePromptNodes,
         appendDerivedImageNode,

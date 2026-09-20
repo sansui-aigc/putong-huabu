@@ -254,6 +254,8 @@ function VozebProCanvasPage() {
         downloadSelectedMedia,
         selectedMediaCount,
         selectedMediaDownloadPending,
+        stitchSelectedImages,
+        stitchPending,
         saveNodeAsset,
         createImageReversePromptNodes,
         appendDerivedImageNode,
@@ -601,6 +603,9 @@ function VozebProCanvasPage() {
                         setAssetPickerOpen(true);
                     }}
                     onAutoLayout={autoLayout}
+                    onStitchVertical={() => void stitchSelectedImages("vertical")}
+                    onStitchHorizontal={() => void stitchSelectedImages("horizontal")}
+                    stitchPending={stitchPending}
                 />}
 
                 <CanvasZoomControls scale={viewport.k} onScaleChange={setZoomScale} onReset={resetViewport} isMiniMapOpen={isMiniMapOpen} onToggleMiniMap={() => setIsMiniMapOpen((value) => !value)} />

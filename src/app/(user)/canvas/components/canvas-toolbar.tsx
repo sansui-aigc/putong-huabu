@@ -1,7 +1,7 @@
 ﻿import type { CSSProperties, MouseEvent as ReactMouseEvent, ReactNode, RefObject } from "react";
 import { useEffect, useRef, useState } from "react";
-import { Button, Segmented, Switch } from "antd";
-import { CircleDot, Download, Eraser, FolderOpen, Globe2, Grid2x2, Hand, Image as ImageIcon, Info, Moon, MousePointer2, Music2, Palette, Redo2, Settings2, Square, Sun, Trash2, Type, Undo2, Upload, Video, Workflow } from "lucide-react";
+import { Button, Popover, Segmented, Switch } from "antd";
+import { AlignVerticalJustifyStart, CircleDot, Columns2, Download, Eraser, FolderOpen, Globe2, Grid2x2, Hand, Image as ImageIcon, Info, Layers, Moon, MousePointer2, Music2, Palette, Redo2, Settings2, Square, Sun, Trash2, Type, Undo2, Upload, Video, Workflow } from "lucide-react";
 
 import { canvasThemes, type CanvasBackgroundMode, type CanvasColorTheme, type CanvasTheme } from "@/lib/canvas-theme";
 import { useThemeStore } from "@/stores/use-theme-store";
@@ -35,6 +35,9 @@ export function CanvasToolbar({
     onShowImageInfoChange,
     onOpenAssets,
     onAutoLayout,
+    onStitchVertical,
+    onStitchHorizontal,
+    stitchPending,
 }: {
     selectedCount: number;
     selectedMediaCount: number;
@@ -62,6 +65,9 @@ export function CanvasToolbar({
     onShowImageInfoChange: (show: boolean) => void;
     onOpenAssets: () => void;
     onAutoLayout: () => void;
+    onStitchVertical: () => void;
+    onStitchHorizontal: () => void;
+    stitchPending: boolean;
 }) {
     const wrapRef = useRef<HTMLDivElement>(null);
     const colorTheme = useThemeStore((state) => state.theme);
@@ -70,6 +76,7 @@ export function CanvasToolbar({
     const [hovered, setHovered] = useState<string | null>(null);
     const [tipX, setTipX] = useState(0);
     const [appearanceOpen, setAppearanceOpen] = useState(false);
+    const [stitchOpen, setStitchOpen] = useState(false);
     const [panelX, setPanelX] = useState(0);
     const dockStyle = { background: theme.toolbar.panel, borderColor: theme.toolbar.border, color: theme.toolbar.item, boxShadow: colorTheme === "dark" ? "0 10px 30px rgba(0,0,0,.24)" : "0 10px 28px rgba(15,23,42,.08)" };
     const hoverStyle = { background: theme.toolbar.itemHover, color: theme.toolbar.activeText };
@@ -86,6 +93,17 @@ export function CanvasToolbar({
         window.addEventListener("pointerdown", closeOnOutside);
         return () => window.removeEventListener("pointerdown", closeOnOutside);
     }, [appearanceOpen]);
+
+    useEffect(() => {
+        if (!stitchOpen) return;
+        const closeOnOutside = (event: PointerEvent) => {
+            const target = event.target;
+            if (target instanceof Element && (target.closest(".canvas-stitch-panel") || target.closest(".canvas-toolbar-dock"))) return;
+            setStitchOpen(false);
+        };
+        window.addEventListener("pointerdown", closeOnOutside);
+        return () => window.removeEventListener("pointerdown", closeOnOutside);
+    }, [stitchOpen]);
 
     return (
         <div data-canvas-toolbar className="canvas-toolbar-dock-wrap pointer-events-none absolute bottom-5 left-0 right-0 z-50 flex justify-center">
@@ -164,6 +182,20 @@ export function CanvasToolbar({
                 {selectedMediaCount > 1 ? (
                     <>
                         <Divider theme={theme} />
+                        <Button
+                            data-canvas-stitch
+                            aria-label="拼接选中图片为长图"
+                            className="!flex !h-8 !min-w-[64px] !items-center !justify-center !gap-1 !rounded-md !px-2.5 !text-xs !font-medium"
+                            style={{ background: theme.node.action, borderColor: theme.node.action, color: theme.node.actionText }}
+                            icon={<Layers className="size-4" />}
+                            loading={stitchPending}
+                            onClick={(event) => {
+                                setPanelX(getTipX(wrapRef.current, event.currentTarget));
+                                setStitchOpen((value) => !value);
+                            }}
+                        >
+                            拼接
+                        </Button>
                         <Button
                             data-canvas-batch-download
                             data-canvas-batch-download-count={selectedMediaCount}
@@ -250,6 +282,21 @@ export function CanvasToolbar({
                         </span>
                         <Switch size="small" checked={showImageInfo} onChange={onShowImageInfoChange} />
                     </div>
+                </div>
+            ) : null}
+
+            {stitchOpen ? (
+                <div
+                    className="canvas-stitch-panel pointer-events-auto absolute bottom-[72px] z-30 w-[220px] -translate-x-1/2 rounded-xl border p-1.5 shadow-xl backdrop-blur"
+                    style={{ left: panelX || "50%", background: theme.toolbar.panel, borderColor: theme.toolbar.border, color: theme.toolbar.item }}
+                >
+                    <div className="px-1.5 pb-1 pt-1 text-xs font-medium opacity-65">拼接为长图</div>
+                    <Button type="text" size="small" block className="!justify-start !px-2 !py-1.5" icon={<AlignVerticalJustifyStart className="size-4" />} onClick={() => { setStitchOpen(false); onStitchVertical(); }}>
+                        竖排长图（淘宝详情页）
+                    </Button>
+                    <Button type="text" size="small" block className="!justify-start !px-2 !py-1.5" icon={<Columns2 className="size-4" />} onClick={() => { setStitchOpen(false); onStitchHorizontal(); }}>
+                        横排并排
+                    </Button>
                 </div>
             ) : null}
         </div>

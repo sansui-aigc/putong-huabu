@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { formatAccountId, parseAccountId } from "@/lib/account-id";
 import { decryptSecretValue, encryptSecretValue, isEncryptedSecretValue } from "@/lib/server/secret-crypto";
 import { ECOMMERCE_IMAGE_SKILL } from "@/lib/server/agent-skills/ecommerce-image";
+import { ECOMMERCE_DETAIL_PAGE_SKILL } from "@/lib/server/agent-skills/ecommerce-detail-page";
 import { YANAI_BEAUTY_SKILL } from "@/lib/server/agent-skills/yanai-beauty";
 import { DEFAULT_CREATIVE_SHORTCUT_SKILLS } from "@/lib/server/agent-skills/creative-shortcuts";
 import { deriveLogicalModelsConfig, normalizeDefaultModelsConfig, normalizeLogicalModelsConfig } from "@/lib/model-routing-config";
@@ -332,6 +333,7 @@ export function normalizeAgentSkill(skill: AgentSkill): AgentSkill {
 export function normalizeAgentSkills(skills: AgentSkill[] | undefined) {
     const normalized = Array.isArray(skills) ? skills.map(normalizeAgentSkill).filter((skill) => skill.name && skill.instructions) : [...DEFAULT_SETTINGS.agentSkills];
     if (!normalized.some((skill) => skill.id === YANAI_BEAUTY_SKILL.id)) normalized.push({ ...YANAI_BEAUTY_SKILL, keywords: [...YANAI_BEAUTY_SKILL.keywords], workspaces: [...YANAI_BEAUTY_SKILL.workspaces] });
+    if (!normalized.some((skill) => skill.id === ECOMMERCE_DETAIL_PAGE_SKILL.id)) normalized.push({ ...ECOMMERCE_DETAIL_PAGE_SKILL, keywords: [...ECOMMERCE_DETAIL_PAGE_SKILL.keywords], workspaces: [...ECOMMERCE_DETAIL_PAGE_SKILL.workspaces] });
     for (const skill of DEFAULT_CREATIVE_SHORTCUT_SKILLS) {
         const index = normalized.findIndex((item) => item.id === skill.id);
         if (index < 0) normalized.push({ ...skill, keywords: [...skill.keywords], workspaces: [...skill.workspaces] });

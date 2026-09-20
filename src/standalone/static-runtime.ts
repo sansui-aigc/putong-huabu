@@ -7,6 +7,7 @@ import { buildJui87VideoApiUrl } from "@/lib/jui87-video";
 import { capabilityFromHint, inferModelCapability } from "@/lib/model-capability";
 import { extractImageSizeFromPrompt, normalizeImageSizeValue } from "@/lib/image-size";
 import { buildGeminiImageRequest, isGeminiImageModel, isGrokImageModelName, isNativeGeminiImageModelName, normalizeImageModelName, openAiImageReferenceFieldName, parseGeminiImageDataUrls, type GeminiImageApiFormat } from "./gemini-image";
+import { ECOMMERCE_DETAIL_PAGE_SKILL } from "@/lib/server/agent-skills/ecommerce-detail-page";
 
 const API_KEY_SESSION = "creative:new-api-key";
 const API_KEY_REMEMBERED = "creative:new-api-key:remembered";
@@ -171,6 +172,7 @@ type StaticAgentSkill = {
 */
 
 const BUILTIN_AGENT_SKILLS: StaticAgentSkill[] = [
+    { ...ECOMMERCE_DETAIL_PAGE_SKILL, keywords: [...ECOMMERCE_DETAIL_PAGE_SKILL.keywords], workspaces: [...ECOMMERCE_DETAIL_PAGE_SKILL.workspaces] },
     // ========== 画布/电商专属 Skill ==========
     {
         id: "local-ecommerce-copywriting",
@@ -2432,6 +2434,7 @@ async function handleStaticRequest(url: string, init?: RequestInit): Promise<Res
             return jsonResponse({ code: 404, data: null, msg: "本地素材不存在，请重新上传" }, 404);
         }
         if (path.startsWith("/api/canvas/projects")) return handleCanvas(path, parsed.searchParams, init);
+        if (path === "/api/canvas/stitch" && (init?.method || "GET") === "POST") return handleCanvasStitch(init);
         if (path === "/api/creative/assets") return handleCreativeAssetUpload(init);
         if (path.startsWith("/api/creative/conversations")) return handleCreativeConversations(path, parsed.searchParams, init);
         if (path === "/api/agent/prompt-optimization") return handleAgentPromptOptimization(init);
@@ -2549,6 +2552,94 @@ async function findLocalMedia(key: string) {
     const all = await dbList<{ id: string; dataUrl: string; mimeType: string }>("media");
     const matches = all.filter((item) => item.id === key || item.id.endsWith(`/${key}`) || item.id.split("/").at(-1) === key);
     return matches.length === 1 ? matches[0] : undefined;
+}
+
+async function handleCanvasStitch(init?: RequestInit) {
+    try {
+        const body = await readJson(init);
+        const rawImages = Array.isArray(body.images) ? body.images.filter((v: unknown): v is string => typeof v === "string" && Boolean(v.trim())).slice(0, 20) : [];
+        const direction = body.direction === "horizontal" ? "horizontal" : "vertical";
+        const gap = Math.max(0, Math.min(400, Math.floor(Number(body.gap) || 0)));
+        const background = typeof body.background === "string" && body.background.trim() ? body.background.trim() : "#ffffff";
+        const align = body.align === "start" || body.align === "end" ? body.align : "center";
+        if (rawImages.length < 2) return jsonResponse({ code: 400, data: null, msg: "至少需要 2 张图片" }, 400);
+
+        const loaded: { img: HTMLImageElement; width: number; height: number }[] = [];
+        for (const src of rawImages) {
+            const dataUrl = src.startsWith("data:") ? src : await loadImageAsDataUrl(src);
+            const img = await decodeImage(dataUrl);
+            loaded.push({ img, width: img.naturalWidth, height: img.naturalHeight });
+        }
+
+        const base = loaded[0];
+        const normalized = loaded.map((item) => {
+            if (direction === "vertical") {
+                if (item.width === base.width) return item;
+                const w = base.width;
+                const h = Math.max(1, Math.round((item.height * w) / item.width));
+                return { ...item, width: w, height: h };
+            } else {
+                if (item.height === base.height) return item;
+                const h = base.height;
+                const w = Math.max(1, Math.round((item.width * h) / item.height));
+                return { ...item, width: w, height: h };
+            }
+        });
+
+        const totalWidth = direction === "vertical" ? Math.max(...normalized.map((i) => i.width)) : normalized.reduce((s, i) => s + i.width, gap * (normalized.length - 1));
+        const totalHeight = direction === "horizontal" ? Math.max(...normalized.map((i) => i.height)) : normalized.reduce((s, i) => s + i.height, gap * (normalized.length - 1));
+        if (totalWidth * totalHeight > 120_000_000) return jsonResponse({ code: 413, data: null, msg: "拼接后图片过大，请减少分屏数量" }, 413);
+
+        const canvas = document.createElement("canvas");
+        canvas.width = totalWidth;
+        canvas.height = totalHeight;
+        const ctx = canvas.getContext("2d")!;
+        ctx.fillStyle = background;
+        ctx.fillRect(0, 0, totalWidth, totalHeight);
+
+        if (direction === "vertical") {
+            let top = 0;
+            for (const item of normalized) {
+                const left = align === "start" ? 0 : align === "end" ? totalWidth - item.width : Math.floor((totalWidth - item.width) / 2);
+                ctx.drawImage(item.img, left, top, item.width, item.height);
+                top += item.height + gap;
+            }
+        } else {
+            let left = 0;
+            for (const item of normalized) {
+                const top = align === "start" ? 0 : align === "end" ? totalHeight - item.height : Math.floor((totalHeight - item.height) / 2);
+                ctx.drawImage(item.img, left, top, item.width, item.height);
+                left += item.width + gap;
+            }
+        }
+
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
+        const bytes = Math.round((dataUrl.length - dataUrl.indexOf(",") - 1) * 0.75);
+        return jsonResponse({ code: 0, data: { dataUrl, width: totalWidth, height: totalHeight, bytes, mimeType: "image/jpeg" }, msg: "OK" });
+    } catch (error) {
+        return jsonResponse({ code: 502, data: null, msg: error instanceof Error ? error.message : "图片拼接失败" }, 502);
+    }
+}
+
+async function loadImageAsDataUrl(src: string): Promise<string> {
+    const response = await fetch(src);
+    if (!response.ok) throw new Error("无法读取图片");
+    const blob = await response.blob();
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => reject(new Error("图片读取失败"));
+        reader.readAsDataURL(blob);
+    });
+}
+
+function decodeImage(dataUrl: string): Promise<HTMLImageElement> {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error("图片解码失败"));
+        img.src = dataUrl;
+    });
 }
 
 async function handleCanvas(path: string, search: URLSearchParams, init?: RequestInit) {
@@ -3032,12 +3123,9 @@ async function handleVideoTask(init?: RequestInit) {
     const input = await readJson(init);
     const config = input.config || {};
     const model = String(config.model || "").trim().replace(/^.*::/, "");
-    // The local runtime does not have the server-side channel registry.  Use
-    // both the configured model and the base URL so aliases/prefixed model ids
-    // from api.jui87.com cannot accidentally fall back to the legacy
-    // /v1/videos/generations endpoint.
-    const jui87Base = String(config.protocol || "").toLowerCase() === "jui87" || /(?:api\.jui87\.com|sub\.jui87\.com|808relay)/i.test(String(config.baseUrl || getCreativeApiBaseUrl()));
-    const jui87 = jui87Base || /^(?:wan[-_.]?(?:2(?:\.1)?|3(?:\.0)?)(?:[-_.](?:0|1080p|per[-_.]?second|per[-_.]?second[-_.]?1080))?|sd2[-_.]?5[-_.]?720p|sd2\.5[-_.]?720p|seedance[-_.]?\d|kling[-_.]?\d|sora[-_.]?\d|veo[-_.]?\d|hailuo[-_.]?\d|runway[-_.]?\d|luma[-_.]?\d|vidu[-_.]?\d|cogvideo[-_.]?\d|mochi[-_.]?\d|ltx[-_.]?\d|hunyuanvideo[-_.]?\d|pixverse[-_.]?\d|pika[-_.]?\d|gen[-_.]?\d)$/i.test(model);
+    // /v1/videos 格式（OpenAI 兼容视频 API）作为所有中转站的通用格式，
+    // 不绑定特定域名。只要模型名是视频模型就走这个格式。
+    const modernVideoApi = /^(?:wan[-_.]?(?:2(?:\.1)?|3(?:\.0)?|3)?(?:[-_.](?:0|1080p|per[-_.]?second|per[-_.]?second[-_.]?1080))?|sd2[-_.]?5[-_.]?720p|sd2\.5[-_.]?720p|seedance[-_.]?\d(?:[-_.](?:pro|fast|mini))?|kling[-_.]?\d|sora[-_.]?\d|veo[-_.]?\d|hailuo[-_.]?\d|runway[-_.]?\d|luma[-_.]?\d|vidu[-_.]?\d|cogvideo[-_.]?\d|mochi[-_.]?\d|ltx[-_.]?\d|hunyuanvideo[-_.]?\d|pixverse[-_.]?\d|pika[-_.]?\d|gemini[-_.]?omni[-_.]?\d|gen[-_.]?\d)$/i.test(model) || String(config.protocol || "").toLowerCase() === "jui87";
     const references = Array.isArray(input.references) ? input.references as Array<Record<string, unknown>> : [];
     const urls = (type: string) => references.filter((item) => item.type === type).map((item) => String(item.url || item.dataUrl || "")).filter(Boolean);
     // Sub2 accepts data URLs for video references and materializes them on
@@ -3046,25 +3134,30 @@ async function handleVideoTask(init?: RequestInit) {
     // requiring a separate /public-media upload endpoint.
     const seconds = Number(config.videoSeconds || 5);
     const prompt = limitStaticVideoPrompt(String(input.prompt || ""));
-    const isSd2OrSeedance = model.toLowerCase().includes("sd2") || model.toLowerCase().includes("seedance");
-    const body = jui87
+    const aspectRatio = typeof config.aspectRatio === "string" && config.aspectRatio.trim() ? config.aspectRatio.trim() : (typeof config.size === "string" && /^\d+:\d+$/.test(config.size.trim()) ? config.size.trim() : "");
+    const isSeedance = model.toLowerCase().includes("seedance");
+    const resolution = typeof config.videoResolution === "string" && config.videoResolution.trim() ? config.videoResolution.trim() : "720p";
+    const hasReferences = urls("image").length > 0 || urls("video").length > 0 || urls("audio").length > 0;
+    const body = modernVideoApi
         ? {
               model,
               prompt,
-              ...(isSd2OrSeedance ? { seconds: Math.min(30, Math.max(1, Math.trunc(seconds) || 30)), mode: "reference-to-video" } : { duration: Math.min(30, Math.max(1, Math.trunc(seconds) || 5)) }),
-              resolution: "720p",
-              generate_audio: config.videoGenerateAudio !== "false",
-              ...(urls("image").length ? { image_urls: urls("image").slice(0, isSd2OrSeedance ? 9 : 2) } : {}),
-              ...(urls("video").length ? { video_urls: urls("video").slice(0, 9) } : {}),
-              ...(urls("audio").length ? { audio_urls: urls("audio").slice(0, 9) } : {}),
+              seconds: Math.min(30, Math.max(1, Math.trunc(seconds) || 5)),
+              resolution,
+              ...(aspectRatio ? { aspect_ratio: aspectRatio } : {}),
+              ...(hasReferences && isSeedance ? { mode: "reference-to-video" } : {}),
+              ...(config.videoGenerateAudio === "false" ? { sound_effects: false } : {}),
+              ...(urls("image").length ? { reference_images: urls("image").slice(0, isSeedance ? 9 : 2) } : {}),
+              ...(urls("video").length ? { reference_videos: urls("video").slice(0, 9) } : {}),
+              ...(urls("audio").length ? { reference_audios: urls("audio").slice(0, 9) } : {}),
           }
         : { model, prompt, size: config.size, seconds, generate_audio: config.videoGenerateAudio !== "false" };
     const connectionId = String(config.connectionId || "");
-    const response = await videoApiFetch(jui87 ? "/v1/videos" : "/v1/videos/generations", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }, connectionId);
+    const response = await videoApiFetch(modernVideoApi ? "/v1/videos" : "/v1/videos/generations", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }, connectionId);
     if (!response.ok) return jsonResponse({ error: await readError(response, "视频任务创建失败") }, response.status === 401 ? 502 : response.status);
     const payload = await response.json() as Record<string, any>;
     const id = String(payload.id || payload.task_id || payload.data?.id || `video-${nanoid()}`);
-    const protocol = jui87 ? "jui87" : "legacy";
+    const protocol = modernVideoApi ? "jui87" : "legacy";
     videoTaskProtocols.set(id, protocol);
     taskConnections.set(id, connectionId);
     taskRequests.set(id, Promise.resolve(payload));
